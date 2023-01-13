@@ -1,0 +1,237 @@
+### Configuration file for qopen package in JSON format
+# Comments are indicated with "#" and ignored while parsing
+
+{
+
+### Options for input and output ###
+
+"events": "../data/events2018_ML>=0.csz",
+"inventory": "../data/selected_stations.xml",
+"filter_inventory": null,
+"data": "plugin",
+
+
+# Where to find the plugin in the form "module : func"
+# 'module' has to be importable (located in current path or PYTHON_PATH
+# environment variable).
+# 'func' has to be the function which delivers the data, e.g. for a
+# FSDN client:
+#     # in module.py
+#     from obspy.clients.fsdn import Client
+#     client = Client()
+#     def func(**kwargs):
+#         kwargs.pop('event')  # event kwarg is not needed by client
+#         return client.get_waveforms(**kwargs)
+# Kwargs passed to func are: network, station, location, channel,
+# starttime, endtime and event
+"plugin": "data : get_data",
+
+# Request window of data in s relative to origin time
+"request_window": [-50, 100],
+"cache_waveforms": null,
+"output": "results.json",
+"indent": 2,
+
+
+"logfile": "fin_log.txt",
+"loglevel": 3,
+"njobs": null,
+
+
+### Options for inversion ###
+
+"invert_events_simultaneously": false,
+"mean": "robust",
+"v0": 3500,
+"rho0": 2700,
+"R0": 1,
+"free_surface": 4,
+"optimize": {"method": "golden", "tol": 1e-1},
+"g0_bounds": [1e-8, 1e-4],
+"b_bounds": [1e-3, 10],
+"remove_response": "sensitivity",
+"correct_for_elevation": false,
+"filter": {"corners": 2, "zerophase": true},
+#"freqs": {"width": 1, "cfreqs": [3, 6.0, 12, 24, 48, 96, 192]},
+"freqs": {"width": 1, "cfreqs": [3.0, 4.2, 6.0, 8.5, 12.0, 17.0, 24.0, 33.9, 48.0, 67.9, 96.0, 135.8, 192.0]},
+
+# Use picks given in events file to determine the P- and S-onset.
+# Picks can also be used to calculate v0. If a station does not have a
+# S pick (S or Sg) it is ignored.
+"use_picks": true,
+
+# Otherwise these velocities are used together with the distance between
+# preferred origin and station to determine the onsets
+"vp": 6000,
+"vs": 3500,
+
+
+# Determine the S-onset again. This option is for testing purposes when
+# no picks are available. It should be prefered to use picks.
+# Possible values: null, "maximum" (take maximum in given window as new
+# S-onset)
+# Example:
+# "adjust_sonset": "maximum",
+# "adjust_sonset_options": {"window": ["S-10s", "S+10s"]},
+"adjust_sonset": null,
+
+# Remove noise level from data
+"remove_noise": true,
+
+# Definition of different time windows
+# - List of time windows to determine the noise level relative to P-onset
+#   (the minimum of the noise levels determined in the individual time
+#   windows is used)
+# - Time window for calculation of the direct energy.
+#   The energy is integrated in this time window
+# - Time window defining the coda
+# Time windows are a list of two values (start and end time).
+# The start time and end time can be a string, e.g.:
+# - 'P-10s', 'S+10s', 'OT+10s' (seconds relative to onset or origin time),
+# - '1.2Stt', '0.8Ptt' (travel time relative to onset travel time '1Stt'),
+# - '3SNR' (only for end time of codawindow, time after start time when
+#          the energy hits this level relative to the noise level) or
+# - 'time>3SNR' (same as previous, but time after which the noise level
+#                is checked is explicitly given, e.g. "S+10s>3SNR")
+# The start time and end time can also be a list, in this case the largest
+# start time and the smallest end time is chosen.
+"noise_windows": [["OT-30s", "OT-20s"], ["OT-20s", "OT-10s"], ["OT-10s", "OT+0s"]],
+"noise_windows_func": "max",  # be conservative here and use the maximal noise level inside the 3 noise windows
+"bulk_window": ["S-0.5s", "S+3s"],
+#"coda_window": ["S+3s", ["S+50s", "3SNR"]], # Coda window ends 150s after S-onset or if SNR of 3 is reached.
+"coda_window": ["S+3s", ["OT+18s", "2SNR"]], # Coda window ends 150s after S-onset or if SNR of 2 is reached.
+
+# The weight of the bulk window (list of value and unit)
+# unit is one of:
+# - codawindow (the same weight has the whole coda window)
+# - bulkwindow (the same weight as the length of the bulk window
+#                 relative to the coda window)
+# - samples (the same weight as one sample in the coda window)
+"weight" : [1, "bulkwindow"],
+
+# Smooth the coda over 'smooth' seconds (null for no smoothing)
+"smooth": 1,
+
+# The window used for smoothing. Can be one of
+# "flat", "hanning", "hamming", "bartlett" or "blackman".
+# "flat" corresponds to the moving average, for the rest see
+# http://docs.scipy.org/doc/numpy/reference/routines.window.html
+"smooth_window": "flat",
+
+# Cut coda if a local minimum is present in data (e.g. because of a second
+# earthquake with bulk waves arriving in the coda). Local maxima in the coda
+# are compared to previous local minima. If the ratio between a maximum and
+# the lowest minimum before the maximum is above a threshold the coda window
+# will end at time of the minimum.
+# Coda can optionally be smoothed before this operation.
+# Example:
+"cut_coda": {"smooth": 1, "ratio": 2},
+#"cut_coda": null,
+
+# Skip station if one of these conditions is fulfilled.
+# Possible conditions:
+# - "coda_window" shorter than x seconds
+# - "distance" between station and event larger than x km
+# - "maximum" of envelope is not in given window
+# - "num_pairs" skip event if number of station event pairs smaller than x
+# Example:
+ "skip": {"coda_window": 2,
+          "num_pairs": 5},
+#"skip": null,
+
+# Calculate the seismic moment from the source displacement spectrum.
+# Possible values:
+# null: no calculation of the seismic moment
+# "mean" of the values for frequencies smaller than 'fc',
+# "fit" fit source displacement spectrum to source model
+# "robust_fit" robustly fit source displacement spectrum to source model
+# The model is defined in qopen.source.source_model()
+# The options passed to qopen.source.fit_sds() (see documentation there) are
+# defined in the seismic_moment_options dictionary. It is for example possible
+# to invert the source displacement spectrum for fc, n and gamma simultaneously
+# or to fix a subset of the parameters and invert for the others.
+#"seismic_moment_method": "mean",
+#"seismic_moment_options": {"fc": 1.5},
+"seismic_moment_method": "robust_fit",
+"seismic_moment_options": {"fc": null, "n": null, "gamma": 2,
+                           "fc_lim": [5, 100], "num_points": 7},
+
+# Optionally, a user defined alternative Green's function for scattering can be used.
+# The module has to define a function with the following arguments:
+# G(r, t, c, g0):
+#     return  Green's function
+# Some Green's functions are provided in qopen.rt module:
+# G_rt3d, G_rt2d, G_rt1d  (radiative transfer 3d, 2d, 1d)
+# G_diff3d  (diffusion 3d)
+# G_diffapprox3d  (diffusion approximation 3d, can be used with
+#                  "optimize": null, "bulk_window": null
+#                  to invert envelopes for coda Q)
+#"G_plugin": "qopen.rt : G_rt3d",
+
+# Option for coda normalization of the envelope. In the case of coda normalization,
+# the source spectrum and site amplification are not inverted. The window for coda
+# normalization is specified in seconds after origin time.
+"coda_normalization": null,
+#"coda_normalization": [180, 200],
+
+### Plot options ###
+
+### Plot options ###
+
+# For all parameters which can be used in the plot_*_options dictionaries see the qopen.imaging module.
+
+# Plot observed energies
+# xlim_min: time limits for linear plot (relative to origin time)
+# xlim_log: time limits for log plot (relative to origin time)
+# fname: filename gets populated by eventid and freq_band
+"plot_energies": false,
+"plot_energies_options": {"fname": "plots/energies_{evid}_{f1:06.2f}Hz-{f2:06.2f}Hz.png",
+                          "xlim_lin": [0, 30], "xlim_log": [1, 110]},
+
+# Plot optimization routine
+# num: Number of fit plots
+# fname: filename gets populated by eventid and freq_band
+"plot_optimization": true,
+"plot_optimization_options": {"num": 7,
+                              "fname": "plots/optimization_{evid}_{f1:06.2f}Hz-{f2:06.2f}Hz.png"},
+
+# Plot fits for optimization result
+# fname: filename gets populated by eventid and freq_band
+"plot_fits": true,
+"plot_fits_options": {"fname": "plots/fits_{evid}_{f1:06.2f}Hz-{f2:06.2f}Hz.png",
+                      "xlim": [-5, 45]},
+
+# Plot scattering parameters and magnitude estimation for one event
+# fname: filename gets populated by eventid
+"plot_eventresult": true,
+"plot_eventresult_options": {"fname": "plots/eventresult_{evid}.png"},
+
+# Plot site corrections for one event
+# fname: filename gets populated by eventid
+"plot_eventsites": true,
+"plot_eventsites_options": {"fname": "plots/eventsites_{evid}.png"},
+
+# Plot mean attenuation and scattering properties
+# fname: filename
+"plot_results": true,
+"plot_results_options": {"fname": "plots/results.pdf", "llim": [1e1, 1e4], "Qlim": [1e-6, 1e-2]},
+
+# Plot mean site amplification factors
+# fname: filename
+"plot_sites": true,
+"plot_sites_options": {"fname": "plots/sites.pdf"},
+
+# Plot source displacement spectra
+# fname: filename
+"plot_sds": true,
+#"plot_sds_options": {"fname": "plots/sds.pdf", "nx": 8, "figsize": [14, 50], "annotate": true},
+"plot_sds_options": {"fname": "plots/sds.pdf", "nx": 8, "figsize": [14, 50], "annotate": true},
+
+# Plot comparison between magnitude determined by this script and magnitude
+# from event file
+# fname: filename
+"plot_mags": true,
+"plot_mags_options": {"fname": "plots/mags.pdf"}
+
+
+}

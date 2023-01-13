@@ -1,0 +1,2 @@
+figure.figsize   : 10, 10
+figure.dpi       : 400      # figure dots per inch
