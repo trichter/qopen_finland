@@ -25,7 +25,7 @@ FIXED_N = True
 QOPENSITERESULTS = '../qopen/02_sites/results.json'
 
 EQ_PARAMS = '../data/eq_params_{}.csv'
-EPHEADER = 'evid,Ml,Mw,fc,n,stressdrop'
+EPHEADER = 'evid,Ml,Mw,fc,n,stressdrop_MPa'
 EPDTYPE = '<U23,f4,f4,f4,f4,f4'
 EPFMT = '%s,%.3f,%.3f,%.3f,%.3f,%.3f'
 
@@ -248,8 +248,8 @@ def fc_vs_Mw(fixn=True):
     dxxx = 0.26
     t1 = np.genfromtxt(EQ_PARAMS.format('2018'+ '_n_not_fixed' * (not fixn)), dtype=EPDTYPE, names=True, delimiter=',')
     t2 = np.genfromtxt(EQ_PARAMS.format('2020'+ '_n_not_fixed' * (not fixn)), dtype=EPDTYPE, names=True, delimiter=',')
-    Mw1, fc1, sd1, n1 = t1['Mw'], t1['fc'], t1['stressdrop'], t1['n']
-    Mw2, fc2, sd2, n2 = t2['Mw'], t2['fc'], t2['stressdrop'], t2['n']
+    Mw1, fc1, sd1, n1 = t1['Mw'], t1['fc'], t1['stressdrop_MPa'], t1['n']
+    Mw2, fc2, sd2, n2 = t2['Mw'], t2['fc'], t2['stressdrop_MPa'], t2['n']
 
     fig = plt.figure(figsize=(10, 5))
     box1 = [0.45, 0.1, 0.45, 0.85]
