@@ -17,13 +17,14 @@ RALLSITES = '../qopen/05_sites_all_stations/results.json'
 
 
 def plot_sites_():
+    inv = read_inventory(ALL_STATIONS)
     with open(RSITES) as f:
         results = json.load(f)
     def sortkey(sta):
         return ('A%02d' % BHSTATIONS.index(sta.split('.')[-1])
                 if sta.split('.')[-1] in BHSTATIONS else sta)
     plot_sites(results, nx=9, figsize=(12, 4.5), ylim=(10**-2.2, 10**2.2),
-               ylabel=None, show_excluded=False, sortkey=sortkey)  # excluded: HE.PVF
+               annotate=False, ylabel=None, show_excluded=False, sortkey=sortkey)  # excluded: HE.PVF
     fig = plt.gcf()
     fig.axes[0].set_yticks((0.01, 0.1, 1, 10, 100))
     results['R'].pop('HE.PVF')
@@ -35,7 +36,14 @@ def plot_sites_():
             ax.axhline(0.25, lw=1, color='0.5', zorder=50)
         else:
             ax.axhline(1, lw=1, color='0.5', zorder=50)
-    fig.supylabel('energy site amplification', x=0.07)
+        if sta.split('.')[1] in BHSTATIONS:
+            depth = inv.get_coordinates(sta + '..HHZ')['local_depth']
+            label = f'{sta} {depth:.0f}m'
+        else:
+            label = sta
+        ax.annotate(label, (0, 1), (3, -3), 'axes fraction',
+                    'offset points', ha='left', va='top', size='x-small')
+    fig.supylabel('energy site amplification R', x=0.07)
     fig.savefig('../figs/sites2.pdf', bbox_inches='tight', pad_inches=0.1)
 
 

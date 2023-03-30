@@ -54,7 +54,7 @@ def prepare_events(network_codes=None):
               skipheader=1,
               format='CSV')
     # first prepare 2020 catalog
-    events = read_events('../data/2020_ISUH_FULLY_PICKED/EVENT_METADATA/CSV/2020_ISUH_events.csv', **kw)
+    events = read_events('../data/2020_ISUH_fully_picked/EVENT_METADATA/CSV/2020_ISUH_events.csv', **kw)
     # filter out one natural earthquake
     events.events = [ev for ev in events if _eventid(ev) != '2020204003527ISUHX00000']
     events.write('../data/events2020.csv', 'CSV')
@@ -68,7 +68,7 @@ def prepare_events(network_codes=None):
     # discard the magnitudes and add magnitudes from the ISUH 2018 catalog
     # -> magnitudes are estimated with the same procedure in 2018 and 2020
     print('add magnitudes from ISUH events')
-    events2 = read_events('../data/2018_ISUH_FULLY_PICKED/EVENT_METADATA/CSV/2018_ISUH_fully_picked_events.csv', **kw)
+    events2 = read_events('../data/2018_ISUH_fully_picked/EVENT_METADATA/CSV/2018_ISUH_fully_picked_events.csv', **kw)
     mags2 = {_eventid(ev).replace('ISUHX', 'IMS0'): ev.magnitudes[0].mag for ev in events2}
     events3 = []
     for ev in events:

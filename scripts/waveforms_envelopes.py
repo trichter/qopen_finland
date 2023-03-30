@@ -252,7 +252,7 @@ def plot_envelopes(evid=EVID, out=OUT, label=False):
         ax.semilogy(tr.times()-OTIME, tr.data, lw=0.5, color='0.35')
     ax.annotate('diffuse Moho\nreflection', (20,  4e-11), (20, 1e-8),
                 ha='center', arrowprops=arrowprops)
-    ax.annotate('    Conrad?', (10,  4e-11), (10, 2e-9),
+    ax.annotate('    Conrad', (10,  4e-11), (10, 2e-9),
                 ha='center', arrowprops=arrowprops)
     ax.set_xlabel('time (s)')
     ylabel = 'spectral energy density $E$ (Jm$^{-3}$Hz$^{-1}$)'

@@ -1,4 +1,4 @@
-# Copyright 2022 Tom Eulenfeld, MIT license
+# Copyright 2023 Tom Eulenfeld, MIT license
 
 import json
 import matplotlib
@@ -18,6 +18,7 @@ fcs = r'$f_{\rm c}$'
 
 QOPENEVENTRESULTS = '../qopen/03_source/results.json'
 QOPENEVENTRESULTS2 = '../qopen/04_source_nconst/results.json'
+
 QOPENEVENTRESULTS3 = '../qopen/06_source_2020/results.json'
 QOPENEVENTRESULTS4 = '../qopen/07_source_2020_nconst/results.json'
 FIXED_N = True
@@ -44,23 +45,17 @@ def _load_json(fname):
         return json.load(f)
 
 
-def plot_sds_wrapper():
+def plot_sds_wrapper(results, select=None, **kw):
     def _shorten_eventids(events):
         for evid in list(events):
             events[evid[:13]] = events.pop(evid)
 
-    fixn = True
-    results = _load_json(QOPENEVENTRESULTS2 if fixn else QOPENEVENTRESULTS)  # 2018
-    results2 = _load_json(QOPENEVENTRESULTS4 if fixn else QOPENEVENTRESULTS3)  # 2020
     annotate_label=(r'$M_{{\rm{{L}}}}$={Mcat:.1f} $M_{{\rm w}}$={Mw:.1f}' +
                     '\n' + r'$f_{{\rm c}}$={fc:.1f} Hz')
-    results['events'] = dict(list(results['events'].items())[:23])
+    if select:
+        results['events'] = dict(list(results['events'].items())[:select])
     _shorten_eventids(results['events'])
-    _shorten_eventids(results2['events'])
-    plot_all_sds(results, fname='../figs/some_sds.pdf', nx=8, figsize=(12, 4),
-                 annotate=True, annotate_label=annotate_label)
-    plot_all_sds(results2, fname='../figs/sds_2020.pdf', nx=8, figsize=(12, 4),
-                 annotate=True, annotate_label=annotate_label)
+    plot_all_sds(results, annotate=True, annotate_label=annotate_label, **kw)
 
 
 def plot_sds_in_one():
@@ -94,46 +89,28 @@ def plot_sds_in_one():
     fig.savefig('../figs/all_sds_in_one.pdf', bbox_inches='tight')
 
 
-def calc_stressdrops(fixn=True):
-    results = _load_json(QOPENEVENTRESULTS2 if fixn else QOPENEVENTRESULTS)  # 2018
-    results2 = _load_json(QOPENEVENTRESULTS4 if fixn else QOPENEVENTRESULTS3)  # 2020
+def calc_stressdrops(fname, fnamen=None, label=None):
+    results = _load_json(fname) if isinstance(fname, str) else fname
     vals = [(evid, evres['Mcat'], evres['Mw'], evres['fc']) for evid, evres in results['events'].items() if 'Mw' in evres]
-    vals2 = [(evid, evres['Mcat'], evres['Mw'], evres['fc']) for evid, evres in results2['events'].items() if 'Mw' in evres]
     evid, Ml, Mw, fc = map(np.array, zip(*vals))
-    evid2, Ml2, Mw2, fc2 = map(np.array, zip(*vals2))
     # load n values
-    results = _load_json(QOPENEVENTRESULTS)  # 2018
-    results2 = _load_json(QOPENEVENTRESULTS3)  # 2020
+    results = _load_json(fnamen) if isinstance(fnamen, str) else results if fnamen is None else fnamen
     nd = {evid: evres['n'] for evid, evres in results['events'].items() if 'Mw' in evres}
-    nd2 = {evid: evres['n'] for evid, evres in results2['events'].items() if 'Mw' in evres}
     n = np.array([nd.get(id_) for id_ in evid], dtype=float)
-    n2 = np.array([nd2.get(id_) for id_ in evid2], dtype=float)
-
     print(f'high frequency fall-of mean: {np.nanmean(n):.3f}  '
           f'median: {np.nanmedian(n):.3f}  std: {np.nanstd(n):.3f}')
-    print(f'high frequency fall-of mean: {np.nanmean(n2):.3f}  '
-          f'median: {np.nanmedian(n2):.3f}  std: {np.nanstd(n2):.3f}')
     sd = fc2stress_drop(fc, moment_magnitude(Mw, inverse=True)) / 1e6  # MPa
-    sd2 = fc2stress_drop(fc2, moment_magnitude(Mw2, inverse=True)) / 1e6  # MPa
-
     Mwl = 0.8
     print('stress drop in MPa 2018')
     print('mean+-var sd  {:.1f}+-{:.1f} ({:.0f}%)'.format(np.mean(sd), np.var(sd), 100 * np.var(sd)/np.mean(sd)))
     print('median+-mad sd  {:.1f}+-{:.1f} ({:.0f}%)'.format(np.median(sd), mad(sd), 100 * mad(sd)/np.median(sd)))
     print('median+-geometric mad sd  {:.1f} -{:.1f} +{:.1f} ({:.0f}%, {:.0f}%)'.format(np.median(sd), geomad(sd)[0], geomad(sd)[1], 100 * geomad(sd)[0]/np.median(sd), 100 * geomad(sd)[1]/np.median(sd)))
     print('median sd Ml>', np.median(sd[Mw>=Mwl]))
-
-    print('stress drop in MPa 2020')
-    print('mean+-var sd  {:.1f}+-{:.1f} ({:.0f}%)'.format(np.mean(sd2), np.var(sd2), 100 * np.var(sd2)/np.mean(sd2)))
-    print('median+-mad sd  {:.1f}+-{:.1f} ({:.0f}%)'.format(np.median(sd2), mad(sd2), 100 * mad(sd2)/np.median(sd2)))
-    print('median+-geometric mad sd  {:.1f} -{:.1f} +{:.1f} ({:.0f}%, {:.0f}%)'.format(np.median(sd2), geomad(sd2)[0], geomad(sd)[1], 100 * geomad(sd)[0]/np.median(sd), 100 * geomad(sd)[1]/np.median(sd)))
-    print('median sd2', np.median(sd2), np.median(sd2[Mw2>=Mwl]))
-    arr = np.asarray(list(zip(*[evid, Ml, Mw, fc, n, sd])), dtype=EPDTYPE)
-    arr2 = np.asarray(list(zip(*[evid2, Ml2, Mw2, fc2, n2, sd2])), dtype=EPDTYPE)
-    fname = EQ_PARAMS.format('2018' + '_n_not_fixed' * (not fixn))
-    fname2 = EQ_PARAMS.format('2020' + '_n_not_fixed' * (not fixn))
-    np.savetxt(fname, arr, fmt=EPFMT, header=EPHEADER)
-    np.savetxt(fname2, arr2, fmt=EPFMT, header=EPHEADER)
+    arr = np.asarray(list(zip(*[evid, Ml, Mw, fc, n, sd])), dtype={'names': EPHEADER.split(','), 'formats': EPDTYPE.split(',')})
+    if label is not None:
+        fname = EQ_PARAMS.format(label)
+        np.savetxt(fname, arr, fmt=EPFMT, header=EPHEADER)
+    return arr
 
 
 def compare_mags():
@@ -145,13 +122,6 @@ def compare_mags():
     Mw2 = t2['Mw']
     mmin, mmax = 0, np.max(Ml)
     m = np.linspace(mmin, mmax, 100)
-
-    # method = 'least squares'
-    # temp = [(r['Mcat'], r['Mw']) for id_, r in result['events'].items()
-    #     if r.get('Mcat') is not None and r.get('Mw') is not None and
-    #     (plot_only_ids is None or id_ in plot_only_ids)]
-
-    # method = 'robust'
 
     fig = plt.figure(figsize=(6, 6))
     ax = fig.add_subplot(111, aspect='equal')
@@ -187,7 +157,7 @@ def compare_mags():
     # ax.plot(m, m / a - b / a, '--k', label=label, alpha=0.5)
     ax.legend(loc='upper left', frameon=False)
     _secondary_yaxis_seismic_moment(ax)
-    ax.set_ylabel(r'moment magnitude $M_{\rm w}$')
+    ax.set_ylabel(f'moment magnitude {Mws}')
     ax.set_xlabel(r'local magnitude  $M_{\rm l}$')
     fig.savefig('../figs/mags2.pdf', bbox_inches='tight')
 
@@ -222,10 +192,16 @@ def fc2Mw(stress_drop, fc):
     return moment_magnitude(M0)
 
 
-def fc2stress_drop(fc, M0):
-    r = 3500 * 0.21 / np.array(fc)
-    stress_drop = 7 * M0 / (16 * r ** 3)
-    return stress_drop
+def fc2stress_drop(fc, M0, inverse=False):
+    if inverse:
+        stress_drop = np.array(fc)
+        r = (7 * M0 / ( 16 * stress_drop)) ** (1/3)
+        fc = 3500 * 0.21 / r
+        return fc
+    else:
+        r = 3500 * 0.21 / np.array(fc)
+        stress_drop = 7 * M0 / (16 * r ** 3)
+        return stress_drop
 
 
 def geomad(vals):
@@ -234,22 +210,37 @@ def geomad(vals):
     return med-med*np.exp(-lmad), med*np.exp(lmad)-med
 
 
-def _logregr(Mw, fc):
-    m2, b2, _, _, m2_stderr = linregress(Mw, np.log10(fc))
-    m, b = 1 / m2, -b2 / m2
-    m_stderr = m2_stderr / m2 ** 2
-    print(f'L2 fit, Mw independent variable: M0 ∝ fc^{1.5*m:.2f}+-{1.5*m_stderr:.2f}')
-    label = f'$M_0$ ∝ {fcs}$^{{{1.5*m:.2f} \pm {1.5*m_stderr:.2f}}}$'
-    return m, b, m_stderr, label
+def _logregr(Mw, fc, method='L2'):
+    if method == 'L2':
+        m2, b2, _, _, m2_stderr = linregress(Mw, np.log10(fc))
+        m, b = 1 / m2, -b2 / m2
+        m_stderr = m2_stderr / m2 ** 2
+        print(f'L2 fit, Mw independent variable: M0 ∝ fc^{1.5*m:.2f}+-{1.5*m_stderr:.2f}')
+        label = f'$M_0$ ∝ {fcs}$^{{{1.5*m:.2f} \pm {1.5*m_stderr:.2f}}}$'
+        return m, b, m_stderr, label
+    elif method == 'robust':
+        m2, b2 = linear_fit(np.log10(fc), Mw, method='robust')
+        m, b = 1 / m2, -b2 / m2
+        print(f'L2 fit, Mw independent variable: M0 ∝ fc^{1.5*m:.2f}')
+        label = f'$M_0$ ∝ {fcs}$^{{{1.5*m:.2f}}}$'
+        return m, b, np.nan, label
 
 
-
-def fc_vs_Mw(fixn=True):
+def fc_vs_Mw(fname1, fname2=None, outlabel='', tests=False):
     dxxx = 0.26
-    t1 = np.genfromtxt(EQ_PARAMS.format('2018'+ '_n_not_fixed' * (not fixn)), dtype=EPDTYPE, names=True, delimiter=',')
-    t2 = np.genfromtxt(EQ_PARAMS.format('2020'+ '_n_not_fixed' * (not fixn)), dtype=EPDTYPE, names=True, delimiter=',')
+    t1 = np.genfromtxt(fname1, dtype=EPDTYPE, names=True, delimiter=',') if isinstance(fname1, str) else fname1
     Mw1, fc1, sd1, n1 = t1['Mw'], t1['fc'], t1['stressdrop_MPa'], t1['n']
-    Mw2, fc2, sd2, n2 = t2['Mw'], t2['fc'], t2['stressdrop_MPa'], t2['n']
+    if fname2:
+        t2 = np.genfromtxt(fname2, dtype=EPDTYPE, names=True, delimiter=',')  if isinstance(fname2, str) else fname2
+        Mw2, fc2, sd2, n2 = t2['Mw'], t2['fc'], t2['stressdrop_MPa'], t2['n']
+    if tests:
+        # We need to exclude some events for which the source model fitting did
+        # not work, especially for the exponential Rf model with high R2
+        # 5 Hz is the lower bound of fc in the optimization
+        Mw1 = Mw1[fc1>5.1]
+        sd1 = sd1[fc1>5.1]
+        n1 = n1[fc1>5.1]
+        fc1 = fc1[fc1>5.1]
 
     fig = plt.figure(figsize=(10, 5))
     box1 = [0.45, 0.1, 0.45, 0.85]
@@ -265,13 +256,14 @@ def fc_vs_Mw(fixn=True):
     # main axes f) Mw vs fc
     ax1 = fig.add_axes(box1)
     ax1.plot(fc1, Mw1, 'x', color='C0', label='2018')
-    ax1.plot(fc2, Mw2, 'o', color='C1', mfc='None', ms=4, label='2020')
+    if fname2:
+        ax1.plot(fc2, Mw2, 'o', color='C1', mfc='None', ms=4, label='2020')
 
     m, b, _, _, m_stderr = linregress(np.log10(fc1), Mw1)
     print(f'L2 fit, fc independent variable: M0 ∝ fc^{1.5*m:.2f}+-{1.5*m_stderr:.2f}')
     m, b = _linear_fit_L1(Mw1, np.log10(fc1), m, b)
     print(f'L1 fit, fc independent variable: M0 ∝ fc^{1.5*m:.2f}')
-    #m2, b2 = _linear_fit_L1(np.log10(fc1), Mw1, m, b)
+
     m2, b2 = _linear_fit_L1(np.log10(fc1), Mw1, 1/m, -b/m)
     m, b = 1 / m2, -b2 / m2
     print(f'L1 fit, Mw independent variable: M0 ∝ fc^{1.5*m:.2f}')
@@ -286,34 +278,33 @@ def fc_vs_Mw(fixn=True):
     print(f'fc={fcx:.1f}Hz and stress drop {sdx:.1f} Mpa for M0=1e13 Nm')
     ax1.set_ylabel(f'moment magnitude {Mws}')
     ax1.set_xlabel(f'corner frequency {fcs} (Hz)')
-    ax1.set_xscale('log')
-    ax1.set_xticks([10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
-    # ax1.set_xticklabels(['', '20', '30', '40', '', '60', '', '', '', ''])
-    ax1.xaxis.set_major_formatter(ScalarFormatter())
-    ax1.set_xlim(18, 70)
-    ax1.set_ylim(0.33, 1.96)
-    ax1.tick_params(top=False)
-    _secondary_yaxis_seismic_moment(ax1)
 
     # b) corner frequency histogram
     ax4 = fig.add_axes(box4, sharex=ax1)
-    bins = np.logspace(np.log10(15), np.log10(70), 41)
-    ax4.hist((fc2, fc1), bins=bins, histtype='barstacked', color=('C1', 'C0'), rwidth=0.9, zorder=10)
-    # ax4.spines['right'].set_visible(False)
-    # ax4.spines['top'].set_visible(False)
-    # ax4.yaxis.set_ticks_position('left')
-    # ax4.xaxis.set_ticks_position('bottom')
+    #bins = np.logspace(np.log10(15), np.log10(70), 41)
+    bins = np.logspace(np.log10(1), np.log10(100), 120)
+    if fname2:
+        ax4.hist((fc2, fc1), bins=bins, histtype='barstacked', color=('C1', 'C0'), rwidth=0.9, zorder=10)
+    else:
+        ax4.hist(fc1, bins=bins, rwidth=0.9, zorder=10)
     ax4.tick_params(labelbottom=False)#, right=False, top=False)
     ax4.axvline(np.median(fc1), color='C0', ls='--')
-    ax4.axvline(np.median(fc2), color='C1', ls='--')
-    ax4.set_ylim(None, 18)
+    print(f'median fc1 {np.median(fc1):.2f}Hz')
+    if fname2:
+        ax4.axvline(np.median(fc2), color='C1', ls='--')
+        print(f'median fc2 {np.median(fc2):.2f}Hz')
+    if not tests:
+        ax4.set_ylim(None, 18)
 
     # a) n histogram
     ax3 = fig.add_axes(box3)
-    bins = np.arange(1.325, 2.31, 0.05)
-    ax3.hist((n2, n1), bins=bins, histtype='barstacked', rwidth=0.9, color=('C1', 'C0'), zorder=10)
+    bins = np.arange(1.325, 2.31, 0.05) if not tests else 21
+    if fname2:
+        ax3.hist((n2, n1), bins=bins, histtype='barstacked', rwidth=0.9, color=('C1', 'C0'), zorder=10)
+        ax3.axvline(np.median(n2), color='C1', ls='--')
+    else:
+        ax3.hist(n1, bins=bins, rwidth=0.9, zorder=10)
     ax3.axvline(np.nanmedian(n1), color='C0', ls='--')
-    ax3.axvline(np.median(n2), color='C1', ls='--')
 
     ax3.set_ylabel('counts')
     ax3.set_xlabel('high frequency fall-off $n$')
@@ -327,12 +318,19 @@ def fc_vs_Mw(fixn=True):
     bins = 10 ** np.arange(-1.05, 1.46, 0.1)
     ax5 = fig.add_axes(box5)
     ax5.axvline(np.median(sd1), color='C0', ls='--')
-    ax5.axvline(np.median(sd2), color='C1', ls='--')
-    ax5.hist((sd2, sd1), bins=bins, histtype='barstacked', color=('C1', 'C0'), rwidth=0.9, zorder=10)
-    ax5.set_ylim(0, 50)
+    print(f'median sd1 {np.median(sd1):.2f}MPa')
+
+    if fname2:
+        ax5.axvline(np.median(sd2), color='C1', ls='--')
+        print(f'median sd2 {np.median(sd2):.2f}MPa')
+        ax5.hist((sd2, sd1), bins=bins, histtype='barstacked', color=('C1', 'C0'), rwidth=0.9, zorder=10)
+    else:
+        ax5.hist(sd1, bins=bins, rwidth=0.9, zorder=10)
+    if not tests:
+        ax5.set_ylim(0, 50)
 
     ax5.set_xscale('log')
-    ax5.set_xlabel('stress drop (MPa)')
+    ax5.set_xlabel('stress drop $\Delta\sigma$ (MPa)')
     ax5.set_ylabel('counts')
     ax5.xaxis.set_major_formatter(ScalarFormatter())
     ax5.annotate('c)', **akwargs)
@@ -340,24 +338,24 @@ def fc_vs_Mw(fixn=True):
     # e) stress drop vs binned Mw
     ax6 = fig.add_axes(box6)
     Mwmid = np.arange(0.5, 1.91, 0.2)
-    vals = [(sd1[np.logical_and(mwmidv-0.1 <= Mw1, Mw1 < mwmidv+0.1)],
-             sd2[np.logical_and(mwmidv-0.1 <= Mw2, Mw2 < mwmidv+0.1)])
-             for mwmidv in  Mwmid]
-    sdv1, sdv2 = zip(*vals)
+    sdv1 = [sd1[np.logical_and(mwmidv-0.1 <= Mw1, Mw1 < mwmidv+0.1)] for mwmidv in  Mwmid]
     sdm1 = np.array(list(map(np.median, sdv1)))
-    sdm2 = np.array(list(map(np.median, sdv2)))
     sderr1 = np.transpose(list(map(geomad, sdv1)))
-    sderr2 = np.transpose(list(map(geomad, sdv2)))
     ax6.errorbar(Mwmid-0.01, sdm1, yerr=sderr1, marker='x', ls='', label='2018')
-    ax6.errorbar(Mwmid+0.01, sdm2, yerr=sderr2, marker='o', ls='', ms=4, mfc='None', label='2020')
-    ratio = sdm1[:len(sdm2)] / sdm2
-    print('radom stress drop ratios',  round(np.nanmedian(ratio), 2))
+    if fname2:
+        sdv2 = [sd2[np.logical_and(mwmidv-0.1 <= Mw2, Mw2 < mwmidv+0.1)] for mwmidv in  Mwmid]
+        sdm2 = np.array(list(map(np.median, sdv2)))
+        sderr2 = np.transpose(list(map(geomad, sdv2)))
+        ax6.errorbar(Mwmid+0.01, sdm2, yerr=sderr2, marker='o', ls='', ms=4, mfc='None', label='2020')
+        ratio = sdm1[:len(sdm2)] / sdm2
+        print('radom stress drop ratios',  round(np.nanmedian(ratio), 2))
     ax6.set_yscale('log')
-    ax6.set_ylim(0.3/1.1, 10*1.1)
+    if not tests:
+        ax6.set_ylim(0.3/1.1, 10*1.1)
     ax6.set_yticks([1, 10])
     ax6.yaxis.set_major_formatter(ScalarFormatter())
 
-    ax6.set_ylabel('stress drop\n(MPa)')
+    ax6.set_ylabel('stress drop\n$\Delta\sigma$ (MPa)')
     ax6.set_xlabel(f'moment magnitude {Mws}')
     ax6.annotate('e)', **akwargs)
     del akwargs['size']
@@ -366,71 +364,92 @@ def fc_vs_Mw(fixn=True):
 
     @matplotlib.ticker.FuncFormatter
     def myformatter(x, pos):
-        # print(x)
         return f'{x:.1f}' if 0.25 <= x <= 0.35 else ''
     ax6.yaxis.set_minor_formatter(myformatter)
 
     # d) fc vs binned Mw
-    vals = [(fc1[np.logical_and(mwmidv-0.1 <= Mw1, Mw1 < mwmidv+0.1)],
-             fc2[np.logical_and(mwmidv-0.1 <= Mw2, Mw2 < mwmidv+0.1)])
-             for mwmidv in  Mwmid]
-    fcv1, fcv2 = zip(*vals)
+    fcv1 = [fc1[np.logical_and(mwmidv-0.1 <= Mw1, Mw1 < mwmidv+0.1)] for mwmidv in  Mwmid]
     fcm1 = np.array(list(map(np.median, fcv1)))
-    fcm2 = np.array(list(map(np.median, fcv2)))
     fcerr1 = np.transpose(list(map(geomad, fcv1)))
-    fcerr2 = np.transpose(list(map(geomad, fcv2)))
     ax7 = fig.add_axes(box7, sharex=ax6)
     ax7.errorbar(Mwmid-0.01, fcm1, yerr=fcerr1, marker='x', ls='')
-    ax7.errorbar(Mwmid+0.01, fcm2, yerr=fcerr2, marker='o', ms=4, mfc='None', ls='')
-    ratio = fcm1[:len(fcm2)] / fcm2
-    print('radom corner freq ratio', round(np.nanmedian(ratio), 2))
+    if fname2:
+        fcv2 = [fc2[np.logical_and(mwmidv-0.1 <= Mw2, Mw2 < mwmidv+0.1)] for mwmidv in  Mwmid]
+        fcm2 = np.array(list(map(np.median, fcv2)))
+        fcerr2 = np.transpose(list(map(geomad, fcv2)))
+        ax7.errorbar(Mwmid+0.01, fcm2, yerr=fcerr2, marker='o', ms=4, mfc='None', ls='')
+        ratio = fcm1[:len(fcm2)] / fcm2
+        print('radom corner freq ratio', round(np.nanmedian(ratio), 2))
     ax7.set_yscale('log')
-    ax7.set_yticks([20, 30, 40, 50])
     ax7.yaxis.set_major_formatter(ScalarFormatter())
+    if tests:
+        ax7.yaxis.set_minor_formatter(ScalarFormatter())
     ax7.tick_params(labelbottom=False)
-    ax7.set_ylabel('corner frequency\n(Hz)')
+    ax7.set_ylabel(f'corner frequency\n{fcs} (Hz)')
     ax7.annotate('d)', **akwargs)
     ax7.annotate('         median and MAD', **akwargs)
+    if not tests:
+        ax7.set_yticks([20, 30, 40, 50])
     ax7.set_xlim(0.35, 2.05)
 
     # line plots for ax1 and ax7
-    fclim = np.array([15, 50, 70])
-    m, b, m_stderr, label = _logregr(Mw1, fc1)
+    fclim = np.array([5, 120])
+    #method = 'robust' if tests else 'L2'
+    method = 'L2'
+    m, b, m_stderr, label = _logregr(Mw1, fc1, method=method)
+    slope = 1.5*m
     print('m, b = ', m, b)
     ax1.plot(fclim, np.log10(fclim)*m+b, zorder=-1, label=label, color='C0')
 
     mwlim = np.array((0.3, 2))
-    m, b, m_stderr, label = _logregr(Mwmid, fcm1)
+    m, b, m_stderr, label = _logregr(Mwmid, fcm1, method=method)
+    slope_binned = 1.5*m
     ax7.plot(mwlim, 10**((mwlim-b)/m), '-.', zorder=-1, label=label, color='C0', alpha=0.5)
     ax1.plot(10**((mwlim-b)/m), mwlim, '-.', zorder=-1, label=label, color='C0', alpha=0.5)
-
-    m, b, m_stderr, label = _logregr(Mw2, fc2)
-    ax1.plot(fclim, np.log10(fclim)*m+b, zorder=-1, label=label, color='C1')
-
-    m, b, m_stderr, label = _logregr(Mwmid[~np.isnan(fcm2)], fcm2[~np.isnan(fcm2)])
-    ax7.plot(mwlim, 10**((mwlim-b)/m), '-.', zorder=-1, label=label, color='C1', alpha=0.5)
-    ax1.plot(10**((mwlim-b)/m), mwlim, '-.', zorder=-1, label=label, color='C1', alpha=0.5)
+    if fname2:
+        m, b, m_stderr, label = _logregr(Mw2, fc2, method=method)
+        ax1.plot(fclim, np.log10(fclim)*m+b, zorder=-1, label=label, color='C1')
+        m, b, m_stderr, label = _logregr(Mwmid[~np.isnan(fcm2)], fcm2[~np.isnan(fcm2)], method=method)
+        ax7.plot(mwlim, 10**((mwlim-b)/m), '-.', zorder=-1, label=label, color='C1', alpha=0.5)
+        ax1.plot(10**((mwlim-b)/m), mwlim, '-.', zorder=-1, label=label, color='C1', alpha=0.5)
 
     kw = dict(ls='--', color='0.5', zorder=-1)
     ax1.plot(fclim, fc2Mw(0.1e6, fclim), **kw)
     ax1.plot(fclim, fc2Mw(1e6, fclim), label=f'$M_0$ ∝ {fcs}$^{{-3}}$', **kw)
     ax1.plot(fclim, fc2Mw(10e6, fclim), **kw)
+    ax1.set_xscale('log')
+    ax1.set_xticks([20, 30, 40, 50, 60, 70])
+    if not tests:
+        ax1.set_xlim(18, 70)
+    else:
+        ax1.set_xlim(np.min(fc1)/1.1, np.max(fc1)*1.1)
+    ax1.xaxis.set_major_formatter(ScalarFormatter())
+    ax1.set_ylim(0.33, 1.96)
+    ax1.tick_params(top=False)
+    _secondary_yaxis_seismic_moment(ax1)
     ax1.legend()
 
-    fname = '../figs/eqparams.pdf'
-    if not fixn:
-        fname = fname.replace('.pdf', '_n_unfixed.pdf')
-    fig.savefig(fname, bbox_inches='tight', pad_inches=0.1)
+    if outlabel is not None:
+        fname = '../figs/eqparams{}.pdf'.format(outlabel)
+        fig.savefig(fname, bbox_inches='tight', pad_inches=0.1)
+    return {'medn': float(np.nanmedian(n1)),
+            'medfc': float(np.median(fc1)),
+            'medsd': float(np.median(sd1)),
+            'slope': slope,
+            'slope_binned': slope_binned}
 
 
 if __name__ == '__main__':
-    plot_sds_wrapper()
+    kw = dict(nx=8, figsize=(12, 4))
+    plot_sds_wrapper(QOPENEVENTRESULTS2, select=23, fname='../figs/some_sds.pdf', **kw)
+    plot_sds_wrapper(QOPENEVENTRESULTS4, fname='../figs/sds_2020.pdf', **kw)
     plot_sds_in_one()
 
-    calc_stressdrops()
+    calc_stressdrops(QOPENEVENTRESULTS2, QOPENEVENTRESULTS, '2018')
+    calc_stressdrops(QOPENEVENTRESULTS4, QOPENEVENTRESULTS3, '2020')
     compare_mags()
     fc_vs_Mw_vs_n()
-    fc_vs_Mw()
+    fc_vs_Mw(EQ_PARAMS.format(2018), EQ_PARAMS.format(2020))
 
     sm1 = moment_magnitude(0.6, inverse=True)
     sm2 = moment_magnitude(0, inverse=True)
