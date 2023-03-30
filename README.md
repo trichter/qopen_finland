@@ -13,19 +13,19 @@ Additionally, this repository contains result files, figures and metadata files.
 
 #### Result files
 
-*`qopen/01_go/results.json`* Attenuation results (g, b)  
-*`data/Q.json`* Alternatively, Q values for this study can be looked up here under key Eulenfeld2013  
-*`qopen/02_sites/results.json`* Site amplifications  
-*`qopen/04_source_nconst/results.json`* Source displacement spectra, fc, M0 for 2018 earthquakes  
-*`qopen/07_source_2020_nconst/results.json`* Source displacement spectra, fc, M0 for 2020 earthquakes  
-*`data/eq_params_20??.csv`* Earthquake parameters for 2018/2020 analyzed earthquakes in CSV format  
+*`qopen/01_go/results.json`* Attenuation results (g, b)
+*`data/Q.json`* Alternatively, Q values for this study can be looked up here under key Eulenfeld2013
+*`qopen/02_sites/results.json`* Site amplifications
+*`qopen/04_source_nconst/results.json`* Source displacement spectra, fc, M0 for 2018 earthquakes
+*`qopen/07_source_2020_nconst/results.json`* Source displacement spectra, fc, M0 for 2020 earthquakes
+*`data/eq_params_20??.csv`* Earthquake parameters for 2018/2020 analyzed earthquakes in CSV format
 
 #### Metadata files
 
-*`data/events*.*`* CSV and CSZ (including picks) files with 2018/2020 events  
-*`data/*stations*.*`* Used station metadata  
-*`data/wellpath20??.txt`* Well paths of 2018/2020 boreholes  
-*`data/Q.json`* Scattering and intrinsic Q values from different studies  
+*`data/events*.*`* CSV and CSZ (including picks) files with 2018/2020 events
+*`data/*stations*.*`* Used station metadata
+*`data/wellpath20??.txt`* Well paths of 2018/2020 boreholes
+*`data/Q.json`* Scattering and intrinsic Q values from different studies
 
 
 #### Other files
@@ -38,7 +38,7 @@ Figures used in the publication and additional figures are located in the `figs`
 ### Preparation for running codes
 
 1. Download or clone this repository.
-2. Install the the relevant python packages: `qopen>=4.3 obspy>=1.4.0 obspycsv>=0.6.1 cartopy shapely pyproj`. The minimum version also specifies the versions I used.
+2. Install the the relevant python packages: `qopen>=4.4 obspy>=1.4.0 obspycsv>=0.6.1 cartopy shapely pyproj`. The minimum version also specifies the versions I used.
    The following is working for me when using conda
    ```
    conda --add channels conda-forge
