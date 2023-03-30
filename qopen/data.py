@@ -2,7 +2,7 @@ import numpy as np
 from obspy import read
 
 DATA2018 = '../data/2018_IMS/EVENT_DATA/{evid}/{evid}.mseed'
-DATA2020 = '../data/2020_ISUH_FULLY_PICKED/EVENT_DATA/{evid}/{evid}.mseed'
+DATA2020 = '../data/2020_ISUH_fully_picked/EVENT_DATA/{evid}/{evid}.mseed'
 
 import logging
 log = logging.getLogger('data')
@@ -13,7 +13,7 @@ def get_data(network, station, location, channel, starttime, endtime, event):
     if year == 2020 and network == 'OT':
         # OT station moved -> no use in monitoring application
         return
-    data = DATA2020 if year == 2020 else DATA2018    
+    data = DATA2020 if year == 2020 else DATA2018
     fname = data.format(evid=evid)
     seedid = '.'.join([network, station, location, channel])
     try:
