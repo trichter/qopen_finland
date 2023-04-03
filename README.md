@@ -38,7 +38,8 @@ Figures used in the publication and additional figures are located in the `figs`
 ### Preparation for running codes
 
 1. Download or clone this repository.
-2. Install the the relevant python packages: `qopen>=4.4 obspy>=1.4.0 obspycsv>=0.6.1 cartopy shapely pyproj`. The minimum version also specifies the versions I used.
+2. Install the the relevant python packages: `qopen>=4.4 obspy>=1.4.0 obspycsv>=1.0.0 cartopy shapely pyproj`. The minimum version also specifies the versions I used.
+   obspycsv is not needed for ObsPy>=1.5.
    The following is working for me when using conda
    ```
    conda --add channels conda-forge

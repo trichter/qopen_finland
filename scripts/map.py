@@ -6,7 +6,10 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 import numpy as np
 from obspy import read_inventory
-from obspycsv import load_csv
+try:
+    from obspy.io.csv import load_csv
+except ImportError:
+    from obspycsv import load_csv
 import shapely.geometry as sgeom
 
 from metadata import BHSTATIONS, STATIONS, EVENTS2018, EVENTS2020
