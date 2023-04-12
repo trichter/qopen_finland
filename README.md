@@ -13,18 +13,18 @@ Additionally, this repository contains result files, figures and metadata files.
 
 #### Result files
 
-*`qopen/01_go/results.json`* Attenuation results (g, b)
-*`data/Q.json`* Alternatively, Q values for this study can be looked up here under key Eulenfeld2013
-*`qopen/02_sites/results.json`* Site amplifications
-*`qopen/04_source_nconst/results.json`* Source displacement spectra, fc, M0 for 2018 earthquakes
-*`qopen/07_source_2020_nconst/results.json`* Source displacement spectra, fc, M0 for 2020 earthquakes
+*`qopen/01_go/results.json`* Attenuation results (g, b)\
+*`data/Q.json`* Alternatively, Q values for this study can be looked up here under key Eulenfeld2013\
+*`qopen/02_sites/results.json`* Site amplifications\
+*`qopen/04_source_nconst/results.json`* Source displacement spectra, fc, M0 for 2018 earthquakes\
+*`qopen/07_source_2020_nconst/results.json`* Source displacement spectra, fc, M0 for 2020 earthquakes\
 *`data/eq_params_20??.csv`* Earthquake parameters for 2018/2020 analyzed earthquakes in CSV format
 
 #### Metadata files
 
-*`data/events*.*`* CSV and CSZ (including picks) files with 2018/2020 events
-*`data/*stations*.*`* Used station metadata
-*`data/wellpath20??.txt`* Well paths of 2018/2020 boreholes
+*`data/events*.*`* CSV and CSZ (including picks) files with 2018/2020 events\
+*`data/*stations*.*`* Used station metadata\
+*`data/wellpath20??.txt`* Well paths of 2018/2020 boreholes\
 *`data/Q.json`* Scattering and intrinsic Q values from different studies
 
 
