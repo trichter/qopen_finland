@@ -4,8 +4,8 @@ This repository contains the source code for the reproduction of results and fig
 
 Tom Eulenfeld, Gregor Hillers, Tommi A. T. Vuorinen and Ulrich Wegler (2023),
 Induced earthquake source parameters, attenuation, and site effects from waveform envelopes in the Fennoscandian Shield,
-*submitted to Journal of Geophysical Research: Solid Earth*,
-[[preprint](https://arxiv.org/pdf/2207.05545)].
+*Journal of Geophysical Research: Solid Earth*,
+doi: [10.1029/2022JB025162](https://doi.org/10.1029/2022JB025162).
 
 Additionally, this repository contains result files, figures and metadata files.
 
